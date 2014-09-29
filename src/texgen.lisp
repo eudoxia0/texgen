@@ -1,7 +1,9 @@
 (in-package :cl-user)
 (defpackage texgen
   (:use :cl :anaphora)
-  (:export :tup))
+  (:shadow :+ :- :* :/ := :set)
+  (:export :emit
+           :tup))
 (in-package :texgen)
 
 ;;; Aliases
@@ -27,6 +29,8 @@
       (typecase val
         (keyword
          (lookup-alias val))
+        (symbol
+         (symbol-name val))
         (string
          val)
         (number
@@ -42,3 +46,20 @@
 
 (defun tup (&rest values)
   (format nil "\\langle ~A \\rangle" (comma-list (emit values))))
+
+(defun set (&rest values)
+  (format nil "\\left\\{ ~A \\right\\}" (comma-list (emit values))))
+
+(defun expr (op values)
+  (let ((fmt (format nil "~~{~~A~~#[~~:; ~A ~~]~~}" op)))
+    (format nil fmt (mapcar #'(lambda (v) (emit v)) values))))
+
+(defun + (&rest values) (expr "+" values))
+(defun * (&rest values) (expr "\\times" values))
+(defun - (&rest values) (expr "-" values))
+
+(defun / (numerator denominator)
+  (format nil "\\frac{~A}{~A}" (emit numerator) (emit denominator)))
+
+(defun = (left right)
+  (format nil "~A = ~A" (emit left) (emit right)))
