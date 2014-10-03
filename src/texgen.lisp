@@ -16,7 +16,9 @@
 (defun defalias (name value)
   (setf (gethash (symbol-name name) *aliases*) value))
 
-(defalias :alpha "α")
+(defalias :alpha "\\alpha")
+(defalias :theta "\\theta")
+(defalias :pi "\\pi")
 (defalias :inf "\\infty")
 
 ;;; Operations
@@ -30,7 +32,9 @@
 ;;; Emit
 
 (defun emit-expr (fn args)
-  (apply (gethash (symbol-name fn) *ops*) args))
+  (aif (gethash (symbol-name fn) *ops*)
+       (apply it args)
+       ""))
 
 (defun emit (val)
   (typecase val
@@ -50,16 +54,19 @@
 (defun comma-list (values)
   (format nil "~{~A~#[~:;, ~]~}" values))
 
-;;; Operations
-
-(defop tup (&rest values)
-  (format nil "\\langle ~A \\rangle" (comma-list (emit values))))
+;;; Aggregate notation
 
 (defop tup (&rest values)
   (format nil "\\langle ~A \\rangle" (comma-list (emit values))))
 
 (defop set (&rest values)
   (format nil "\\left\\{ ~A \\right\\}" (comma-list (emit values))))
+
+(defop p (content)
+  (format nil "\\left( ~A \\right)"
+          (emit content)))
+
+;;; Operations
 
 (defun expr (op values)
   (let ((fmt (format nil "~~{~~A~~#[~~:; ~A ~~]~~}" op)))
@@ -75,8 +82,42 @@
 (defop ^ (base exponent)
   (format nil "~A^{~A}" (emit base) (emit exponent)))
 
-(defop = (left right)
-  (format nil "~A = ~A" (emit left) (emit right)))
+;;; Comparison operators
+
+(defop < (left right) (expr "\\lt" (list left right)))
+(defop <= (left right) (expr "\\leq" (list left right)))
+(defop = (left right) (expr "=" (list left right)))
+(defop > (left right) (expr "\\gt" (list left right)))
+(defop >= (left right) (expr "\\geq" (list left right)))
+
+;;; Aggregate operations
 
 (defop sum (lower upper body)
   (format nil "\\sum_{~A}^{~A} ~A" (emit lower) (emit upper) (emit body)))
+
+;;; Sub and superscript
+
+(defop sub (left right) (expr "_" (list left right)))
+(defop sup (left right) (expr "^" (list left right)))
+
+;;; Common functions
+
+(defop abs (n) (format nil "|~A|" (emit n)))
+(defop sqrt (n) (format nil "\\sqrt{~A}" (emit n)))
+(defop root (p n) (format nil "\\sqrt[~A]{~A}" (emit p) (emit n)))
+
+;;; Complex numbers
+
+(defop cpol (p alpha)
+  "Polar notation"
+  (format nil "~A \\vert \\underline{~A}" (emit p) (emit alpha)))
+
+;;; Trigonometry
+
+(defun fun (op args)
+  (let ((fmt "\\~A(~{~A~#[~:;, ~]~})"))
+    (format nil fmt op (mapcar #'(lambda (v) (emit v)) args))))
+
+(defop sin (alpha) (fun "sin" (list alpha)))
+(defop cos (alpha) (fun "cos" (list alpha)))
+(defop tan (alpha) (fun "tan" (list alpha)))
