@@ -63,7 +63,7 @@
   (format nil "\\left\\{ ~A \\right\\}" (comma-list (emit values))))
 
 (defop p (content)
-  (format nil "\\left( ~A \\right)"
+  (format nil "{\\left( ~A \\right)}"
           (emit content)))
 
 ;;; Operations
